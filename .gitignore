@@ -1,0 +1,76 @@
+# M0/M1 Card Terminal - Git Ignore
+# ================================
+
+# Environment Variables (NEVER COMMIT SECRETS)
+.env
+.env.local
+.env.production
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+terminal.log
+
+# Database
+*.db
+*.sqlite3
+
+# Transaction Data (contains sensitive info)
+data/
+transactions.json
+wallets.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary Files
+*.tmp
+*.temp
+
+# Private Keys (CRITICAL - NEVER COMMIT)
+*.pem
+*.key
+private_keys/
+keys/
+
+# Test Files
+test_results/
+coverage/
+
+# Backup Files
+*.bak
+*.backup

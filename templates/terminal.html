@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M0/M1 Card Payment Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+        
+        .terminal-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            max-width: 800px;
+            width: 95%;
+            margin: 1rem;
+        }
+        
+        .terminal-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .terminal-title {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1e3c72;
+            margin-bottom: 0.5rem;
+        }
+        
+        .terminal-subtitle {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .amount-display {
+            background: #1e3c72;
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 1.2rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #1e3c72;
+        }
+        
+        .form-select {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            background: white;
+        }
+        
+        .card-input {
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+        }
+        
+        .amount-input {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .process-button {
+            width: 100%;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 1.5rem;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            margin-top: 1rem;
+        }
+        
+        .process-button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .process-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .fee-info {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            border-left: 4px solid #1e3c72;
+        }
+        
+        .fee-info h4 {
+            color: #1e3c72;
+            margin-bottom: 0.5rem;
+        }
+        
+        .status-display {
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+        }
+        
+        .status-processing {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .terminal-container {
+                padding: 1.5rem;
+                margin: 0.5rem;
+            }
+            
+            .terminal-title {
+                font-size: 1.5rem;
+            }
+            
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+            
+            .amount-input {
+                font-size: 1.2rem;
+            }
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1e3c72;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-actions {
+            margin-left: 1rem;
+        }
+        
+        .logout-btn {
+            background: #1e3c72;
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        
+        .logout-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .field-hint {
+            display: block;
+            margin-top: 0.5rem;
+            color: #666;
+            font-size: 0.9rem;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal-container">
+        <div class="terminal-header">
+            <div class="header-content">
+                <div>
+                    <div class="terminal-title">M0/M1 Card Payment Terminal</div>
+                    <div class="terminal-subtitle">High-Value Crypto Settlement System</div>
+                </div>
+                <div class="header-actions">
+                    <a href="/logout" class="logout-btn">🚪 Logout</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="amount-display">
+            <strong>Maximum Transaction: ${{ "{:,.2f}".format(max_amount) }} USD/EUR</strong>
+        </div>
+        
+        <form id="paymentForm" method="POST" action="/process">
+            <div class="form-group">
+                <label class="form-label">Card Number (M0/M1)</label>
+                <input type="text" 
+                       name="card_number" 
+                       class="form-input card-input" 
+                       placeholder="0000 0000 0000 0000"
+                       maxlength="19"
+                       required>
+            </div>
+            
+            <div class="grid-2">
+                <div class="form-group">
+                    <label class="form-label">Expiry Date</label>
+                    <input type="text" 
+                           name="expiry_date" 
+                           class="form-input card-input" 
+                           placeholder="MM/YY"
+                           maxlength="5"
+                           required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">CVV/CVC</label>
+                    <input type="password" 
+                           name="cvv" 
+                           class="form-input card-input" 
+                           placeholder="123"
+                           maxlength="4"
+                           required>
+                </div>
+            </div>
+            
+            <div class="grid-2">
+                <div class="form-group">
+                    <label class="form-label">Transaction Amount</label>
+                    <input type="number" 
+                           name="amount" 
+                           class="form-input amount-input" 
+                           placeholder="0.00"
+                           min="0.01"
+                           max="{{ max_amount }}"
+                           step="0.01"
+                           required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Currency</label>
+                    <select name="currency" class="form-select" required>
+                        <option value="USD">USD - US Dollar</option>
+                        <option value="EUR">EUR - Euro</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="grid-2">
+                <div class="form-group">
+                    <label class="form-label">Merchant ID</label>
+                    <input type="text" 
+                           name="merchant_id" 
+                           class="form-input" 
+                           placeholder="MERCHANT001"
+                           required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Authorization Code</label>
+                    <input type="text" 
+                           name="auth_code" 
+                           id="authCode"
+                           class="form-input card-input" 
+                           placeholder="4 or 6 digit auth code from issuer"
+                           maxlength="6"
+                           required>
+                    <small class="field-hint">Enter 4-digit (101.1) or 6-digit (201.3) authorization code from card issuer server</small>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Payout Network</label>
+                <select name="merchant_wallet" class="form-input" required>
+                    <option value="">Select payout network...</option>
+                    <option value="trc20">TRON (TRC-20) - Lower fees ⚡</option>
+                    <option value="erc20">Ethereum (ERC-20) - Higher fees 💰</option>
+                </select>
+                <small class="field-hint">USDT payout will be sent to merchant wallet on selected network</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Fund Type</label>
+                <select name="fund_type" class="form-select" required>
+                    <option value="M0">M0 - Money Supply Base</option>
+                    <option value="M1">M1 - Money Supply Liquid</option>
+                </select>
+            </div>
+            
+            <div class="fee-info">
+                <h4>💰 Fee Structure</h4>
+                <p><strong>Infrastructure Fee:</strong> 2.5% (deducted from transaction)</p>
+                <p><strong>Gas Fees:</strong> Covered by system</p>
+                <p><strong>Settlement:</strong> Immediate USDT payout</p>
+            </div>
+            
+            <button type="submit" class="process-button" id="processBtn">
+                🔄 Process Card Transaction
+            </button>
+        </form>
+        
+        <div id="statusDisplay" class="status-display"></div>
+    </div>
+    
+    <script>
+        // Format card number input
+        document.querySelector('input[name="card_number"]').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\s/g, '').replace(/[^0-9]/gi, '');
+            let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
+            if (formattedValue.length > 19) formattedValue = formattedValue.substr(0, 19);
+            e.target.value = formattedValue;
+        });
+        
+        // Format expiry date input (MM/YY)
+        document.querySelector('input[name="expiry_date"]').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/[^0-9]/g, '');
+            if (value.length >= 2) {
+                value = value.substring(0, 2) + '/' + value.substring(2, 4);
+            }
+            e.target.value = value;
+        });
+        
+        // CVV validation (3-4 digits only)
+        document.querySelector('input[name="cvv"]').addEventListener('input', function(e) {
+            e.target.value = e.target.value.replace(/[^0-9]/g, '');
+        });
+        
+        // Authorization code validation based on protocol
+        const protocolSelect = document.getElementById('protocolSelect');
+        const authCodeInput = document.getElementById('authCode');
+        
+        function updateAuthCodeValidation() {
+            const protocol = protocolSelect.value;
+            if (protocol === '101.1') {
+                authCodeInput.maxLength = 4;
+                authCodeInput.placeholder = '4-digit auth code (101.1)';
+            } else if (protocol === '201.3') {
+                authCodeInput.maxLength = 6;
+                authCodeInput.placeholder = '6-digit auth code (201.3)';
+            } else {
+                authCodeInput.maxLength = 6;
+                authCodeInput.placeholder = '4 or 6 digit auth code from issuer';
+            }
+        }
+        
+        protocolSelect.addEventListener('change', updateAuthCodeValidation);
+        updateAuthCodeValidation(); // Initialize on load
+        
+        // Auth code input validation (numbers only)
+        authCodeInput.addEventListener('input', function(e) {
+            e.target.value = e.target.value.replace(/[^0-9]/g, '');
+        });
+        
+        // Handle form submission
+        document.getElementById('paymentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const btn = document.getElementById('processBtn');
+            const status = document.getElementById('statusDisplay');
+            
+            // Show processing state
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Processing Transaction...';
+            status.className = 'status-display status-processing';
+            status.style.display = 'block';
+            status.textContent = 'Processing card authorization and crypto payout...';
+            
+            // Submit form
+            const formData = new FormData(this);
+            
+            fetch('/process', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Response data:', data);
+                if (data.success && data.redirect) {
+                    console.log('Redirecting to:', data.redirect);
+                    // Redirect to transaction results page
+                    setTimeout(() => {
+                        window.location.replace(data.redirect);
+                    }, 500);
+                } else if (data.success) {
+                    status.className = 'status-display status-success';
+                    status.innerHTML = `
+                        <h4>✅ Transaction Successful!</h4>
+                        <p><strong>TX Hash:</strong> ${data.payout_tx_hash}</p>
+                        <p><strong>Amount Sent:</strong> $${data.usdt_amount} USDT</p>
+                        <p><strong>Infrastructure Fee:</strong> $${data.infrastructure_fee}</p>
+                    `;
+                } else {
+                    status.className = 'status-display status-error';
+                    status.innerHTML = `
+                        <h4>❌ Transaction Failed</h4>
+                        <p>${data.error || 'Unknown error occurred'}</p>
+                    `;
+                }
+            })
+            .catch(error => {
+                status.className = 'status-display status-error';
+                status.innerHTML = `
+                    <h4>❌ System Error</h4>
+                    <p>Please try again or contact support</p>
+                `;
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = '🔄 Process Card Transaction';
+            });
+        });
+        
+        // Real-time amount formatting
+        document.querySelector('input[name="amount"]').addEventListener('input', function(e) {
+            const amount = parseFloat(e.target.value) || 0;
+            const fee = amount * 0.025;
+            const merchantAmount = amount - fee;
+            
+            if (amount > 0) {
+                document.querySelector('.fee-info').innerHTML = `
+                    <h4>💰 Transaction Breakdown</h4>
+                    <p><strong>Original Amount:</strong> $${amount.toFixed(2)}</p>
+                    <p><strong>Infrastructure Fee (2.5%):</strong> $${fee.toFixed(2)}</p>
+                    <p><strong>Merchant Receives:</strong> $${merchantAmount.toFixed(2)} USDT</p>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+services:
+  - type: web
+    name: card-payment-settlement-server
+    env: python
+    runtime: python-3.11
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --keep-alive 2 --max-requests 1000 app:app
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: TERMINAL_USERNAME
+        value: blackrock
+      - key: TERMINAL_PASSWORD
+        value: terminal123
+      - key: MAX_TRANSACTION_AMOUNT
+        value: "10000000.00"
+      - key: CONVERSION_FEE_PERCENT
+        value: "2.5"
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "60"
+      - key: RATE_LIMIT_PER_HOUR
+        value: "1000"
+      
+      # Production Blockchain Wallets (SET THESE IN RENDER DASHBOARD)
+      # - key: TRON_MERCHANT_WALLET
+      #   value: your-tron-mainnet-address
+      # - key: ETH_MERCHANT_WALLET
+      #   value: your-ethereum-mainnet-address
+      # - key: TRON_PRIVATE_KEY
+      #   value: your-tron-private-key
+      # - key: ETH_PRIVATE_KEY
+      #   value: your-ethereum-private-key
+      # - key: INFURA_PROJECT_ID
+      #   value: your-infura-project-id
+      - key: DAILY_TRANSACTION_LIMIT
+        value: "100000000.00"
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "60"
+      - key: RATE_LIMIT_PER_HOUR
+        value: "1000"
+      - key: LOG_LEVEL
+        value: "INFO"
+      - key: SESSION_TIMEOUT
+        value: "3600"
+      - key: MAX_LOGIN_ATTEMPTS
+        value: "5"
+      - key: LOCKOUT_DURATION
+        value: "300"

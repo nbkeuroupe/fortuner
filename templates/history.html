@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head><title>Transaction History</title></head>
+<body>
+  <h2>📜 Transaction History</h2>
+  <table border="1">
+    <tr><th>Date</th><th>Amount</th><th>Currency</th><th>Wallet</th><th>Txn Hash</th></tr>
+    {% for txn in transactions %}
+    <tr>
+      <td>{{ txn.date }}</td>
+      <td>{{ txn.amount }}</td>
+      <td>{{ txn.currency }}</td>
+      <td>{{ txn.wallet }}</td>
+      <td>{{ txn.txn }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <a href="/payout"><button>🏠 Home</button></a>
+  <a href="/logout"><button>Logout</button></a>
+</body>
+</html>
