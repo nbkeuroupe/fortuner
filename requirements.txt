@@ -31,6 +31,8 @@ protobuf<7.0.0,>=6.31.1
 base58==2.1.1
 ecdsa==0.18.0
 
+validators==0.20.0         # new amendment error found on Render
+
 # Production Server
 gunicorn==21.2.0
 
