@@ -484,7 +484,7 @@
         // Real-time amount formatting
         document.querySelector('input[name="amount"]').addEventListener('input', function(e) {
             const amount = parseFloat(e.target.value) || 0;
-            const fee = amount * 0.025;
+            const fee = amount * 0.000;
             const merchantAmount = amount - fee;
             
             if (amount > 0) {
