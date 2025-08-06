@@ -80,4 +80,4 @@ LOG_BACKUP_COUNT = int(os.getenv("LOG_BACKUP_COUNT", 5))
 # Monitoring & Alerts
 # -------------------------
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
-ALERT_EMAIL = os.getenv("ALERT_EMAIL", "admin@yourcompany.com")
+ALERT_EMAIL = os.getenv("ALERT_EMAIL", "nbkwebdevelopment@gmail.com")
