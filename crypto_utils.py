@@ -64,7 +64,7 @@ class CryptoPaymentProcessor:
                     self.tron_client = Tron()
                 else:
                     # Testnet configuration
-                    provider = HTTPProvider("https://api.shasta.trongrid.io")
+                    provider = HTTPProvider("https://api.trongrid.io")
                     self.tron_client = Tron(provider)
             
             # Initialize Ethereum client
