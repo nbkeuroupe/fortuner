@@ -72,7 +72,7 @@ class CryptoPaymentProcessor:
                 if config.ETH_NETWORK == 'mainnet':
                     provider_url = f"https://mainnet.infura.io/v3/{config.INFURA_PROJECT_ID}"
                 else:
-                    provider_url = f"https://goerli.infura.io/v3/{config.INFURA_PROJECT_ID}"
+                    provider_url = f"https://mainnet.infura.io/v3/{config.INFURA_PROJECT_ID}"
                 
                 self.eth_client = Web3(Web3.HTTPProvider(provider_url))
                 
