@@ -1,119 +1,124 @@
-# crypto_utils.py
-
-import os
 import json
-import random
-import threading
-from web3 import Web3
+import os
 from tronpy import Tron
 from tronpy.keys import PrivateKey
+from web3 import Web3
 
-# Load wallets.json once
-with open("wallets.json") as f:
-    WALLETS_CONFIG = json.load(f)
+# Load wallets configuration
+wallets_file = os.path.join(os.path.dirname(__file__), 'wallets.json')
+if os.path.exists(wallets_file):
+    with open(wallets_file, 'r') as f:
+        WALLETS = json.load(f)
+else:
+    WALLETS = {}
 
-# Lock for thread-safe rotation
-_wallet_lock = threading.Lock()
-_wallet_indexes = {}
+# Rotation tracker (in-memory)
+rotation_counters = {}
 
-def rotate_wallet(network, token_type):
+# TRON client
+tron_client = Tron()
+
+# Ethereum client
+eth_web3 = Web3(Web3.HTTPProvider("https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID"))  # replace with your endpoint
+
+
+def get_next_wallet(network, token):
     """
-    Rotate wallets for round-robin payouts.
-    """
-    key = f"{network.lower()}_{token_type.lower()}"
-    wallets = WALLETS_CONFIG.get(key)
-
-    if not wallets or not isinstance(wallets, list) or not wallets:
-        raise Exception(f"Payout failed: No wallets configured for {network.upper()} - {token_type.upper()}")
-
-    with _wallet_lock:
-        index = _wallet_indexes.get(key, 0)
-        wallet = wallets[index % len(wallets)]
-        _wallet_indexes[key] = index + 1
-
-    # If you store sensitive private keys in environment vars:
-    if wallet.get("private_key_env"):
-        env_var = wallet["private_key_env"]
-        wallet["private_key"] = os.environ.get(env_var)
-        if not wallet["private_key"]:
-            raise Exception(f"Missing environment variable: {env_var}")
-
-    return wallet
-
-def send_erc20_token(to_address, amount, private_key, contract_address):
-    """
-    Send ERC20 token (e.g., USDT) on Ethereum.
-    """
-    eth_node = os.environ.get("ETH_NODE_URL")
-    if not eth_node:
-        raise Exception("ETH_NODE_URL not set")
-    web3 = Web3(Web3.HTTPProvider(eth_node))
-
-    account = web3.eth.account.privateKeyToAccount(private_key)
-    nonce = web3.eth.get_transaction_count(account.address)
-
-    contract = web3.eth.contract(address=Web3.to_checksum_address(contract_address), abi=_ERC20_ABI())
-    decimals = contract.functions.decimals().call()
-    amount_in_wei = int(amount * (10 ** decimals))
-
-    txn = contract.functions.transfer(
-        Web3.to_checksum_address(to_address),
-        amount_in_wei
-    ).build_transaction({
-        'chainId': web3.eth.chain_id,
-        'gas': 100000,
-        'gasPrice': web3.eth.gas_price,
-        'nonce': nonce
-    })
-
-    signed_txn = web3.eth.account.sign_transaction(txn, private_key=private_key)
-    tx_hash = web3.eth.send_raw_transaction(signed_txn.rawTransaction)
-    return web3.to_hex(tx_hash)
-
-def send_trc20_token(to_address, amount, private_key, contract_address):
-    """
-    Send TRC20 token (e.g., USDT) on Tron.
-    """
-    tron = Tron()
-    pk = PrivateKey(bytes.fromhex(private_key))
-    from_addr = pk.public_key.to_base58check_address()
-
-    contract = tron.get_contract(contract_address)
-    decimals = contract.functions.decimals()
-    amount_in_sun = int(amount * (10 ** decimals))
-
-    txn = (
-        contract.functions.transfer(to_address, amount_in_sun)
-        .with_owner(from_addr)
-        .fee_limit(5_000_000)
-        .build()
-        .sign(pk)
-        .broadcast()
-    )
-
-    result = txn.wait()
-    return result["id"]
-
-def process_crypto_payout(to_address, amount, network, token_type):
-    """
-    Main payout function with rotation.
+    Round-robin wallet selector
     """
     try:
-        wallet = rotate_wallet(network, token_type)
-        private_key = wallet.get("private_key")
-        contract_address = wallet.get("contract_address")
+        wallets = WALLETS[network][token]
+        key = f"{network}_{token}"
+        if key not in rotation_counters:
+            rotation_counters[key] = 0
+        wallet = wallets[rotation_counters[key] % len(wallets)]
+        rotation_counters[key] += 1
+        return wallet
+    except KeyError:
+        return None
 
-        if not private_key:
-            raise Exception("Wallet missing private key")
-        if not contract_address:
-            raise Exception("Wallet missing contract address")
 
-        if network.lower() == "ethereum" and token_type.lower() == "usdt":
-            tx_hash = send_erc20_token(to_address, amount, private_key, contract_address)
-        elif network.lower() == "tron" and token_type.lower() == "usdt":
-            tx_hash = send_trc20_token(to_address, amount, private_key, contract_address)
+def send_tron_usdt_payout(to_address, amount):
+    """
+    Send TRC20 USDT
+    """
+    wallet = get_next_wallet("TRON", "USDT")
+    if wallet is None:
+        return {"success": False, "error": "No TRON USDT wallets configured."}
+
+    try:
+        contract = tron_client.get_contract('TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf')  # USDT contract on TRON
+        priv_key = PrivateKey(bytes.fromhex(wallet["private_key"]))
+        txn = (
+            contract.functions.transfer(to_address, int(amount * 1_000_000))
+            .with_owner(wallet["address"])
+            .build()
+            .sign(priv_key)
+            .broadcast()
+        )
+        result = txn.wait()
+        if result["receipt"]["result"]:
+            return {"success": True, "txid": txn.txid}
         else:
-            raise Exception(f"Unsupported payout type: {network.upper()} - {token_type.upper()}")
+            return {"success": False, "error": "Transaction failed on-chain."}
+    except Exception as e:
+        return {"success": False, "error": f"TRON payout error: {str(e)}"}
+
+
+def send_erc20_usdt_payout(to_address, amount):
+    """
+    Send ERC20 USDT
+    """
+    wallet = get_next_wallet("ETHEREUM", "USDT")
+    if wallet is None:
+        return {"success": False, "error": "No Ethereum USDT wallets configured."}
+
+    try:
+        contract = eth_web3.eth.contract(
+            address=Web3.to_checksum_address("0xdAC17F958D2ee523a2206206994597C13D831ec7"),  # USDT ERC20 contract
+            abi=[
+                {
+                    "constant": False,
+                    "inputs": [
+                        {"name": "_to", "type": "address"},
+                        {"name": "_value", "type": "uint256"}
+                    ],
+                    "name": "transfer",
+                    "outputs": [{"name": "", "type": "bool"}],
+                    "type": "function"
+                }
+            ]
+        )
+
+        nonce = eth_web3.eth.get_transaction_count(wallet["address"])
+        txn = contract.functions.transfer(
+            Web3.to_checksum_address(to_address),
+            int(amount * 1_000_000)
+        ).build_transaction({
+            "chainId": 1,
+            "gas": 100000,
+            "gasPrice": eth_web3.to_wei("20", "gwei"),
+            "nonce": nonce
+        })
+
+        signed_txn = eth_web3.eth.account.sign_transaction(txn, private_key=wallet["private_key"])
+        tx_hash = eth_web3.eth.send_raw_transaction(signed_txn.rawTransaction)
+        return {"success": True, "txid": tx_hash.hex()}
+
+    except Exception as e:
+        return {"success": False, "error": f"Ethereum payout error: {str(e)}"}
+
+
+def process_crypto_payout(network, token, to_address, amount):
+    """
+    Unified payout dispatcher
+    """
+    if network == "TRON" and token == "USDT":
+        return send_tron_usdt_payout(to_address, amount)
+    elif network == "ETHEREUM" and token == "USDT":
+        return send_erc20_usdt_payout(to_address, amount)
+    else:
+        return {"success": False, "error": f"Payout failed: Unsupported network/token combination: {network} - {token}"}
 
         return {
             "success": True,
