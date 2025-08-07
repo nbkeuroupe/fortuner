@@ -1,5 +1,5 @@
-import json
 import os
+import json
 import threading
 from tronpy import Tron
 from tronpy.keys import PrivateKey
@@ -32,7 +32,8 @@ ERC20_ABI = [
 ]
 
 # --- Wallet and Client Setup ---
-# Modified to load from environment variables instead of wallets.json
+# The script now fetches all sensitive wallet information directly from
+# your environment variables, which is a best practice for security.
 WALLETS = {
     "TRON": {
         "USDT": [
@@ -55,11 +56,13 @@ WALLETS = {
 rotation_counters = {}
 rotation_lock = threading.Lock()
 
+# TRON client
 tron_client = Tron()
 
-# IMPORTANT: Reads your Infura Project ID from environment variables
+# Ethereum client - reads the INFURA_PROJECT_ID from environment variables
 infura_project_id = os.environ.get("INFURA_PROJECT_ID")
 if not infura_project_id:
+    # It's good practice to raise an error if a critical environment variable is missing.
     raise ValueError("INFURA_PROJECT_ID not found in environment variables.")
 
 eth_web3 = Web3(Web3.HTTPProvider(f"https://mainnet.infura.io/v3/{infura_project_id}"))
@@ -72,6 +75,10 @@ def get_next_wallet(network, token):
     with rotation_lock:
         try:
             wallets = WALLETS[network][token]
+            # Ensure the wallet data from env vars is not None
+            if not wallets[0]["address"] or not wallets[0]["private_key"]:
+                return None
+            
             key = f"{network}_{token}"
             if key not in rotation_counters:
                 rotation_counters[key] = 0
@@ -87,9 +94,8 @@ def send_tron_usdt_payout(to_address, amount):
     """
     wallet = get_next_wallet("TRON", "USDT")
     if wallet is None:
-        return {"success": False, "error": "No TRON USDT wallets configured."}
+        return {"success": False, "error": "No TRON USDT wallets configured. Check environment variables."}
 
-    # The `fromhex` function here will now use your correct private key
     try:
         priv_key = PrivateKey(bytes.fromhex(wallet["private_key"]))
     except ValueError as e:
@@ -115,13 +121,14 @@ def send_tron_usdt_payout(to_address, amount):
     except Exception as e:
         return {"success": False, "error": f"TRON payout error: {e}"}
 
+
 def send_erc20_usdt_payout(to_address, amount):
     """
     Send ERC20 USDT.
     """
     wallet = get_next_wallet("ETHEREUM", "USDT")
     if wallet is None:
-        return {"success": False, "error": "No Ethereum USDT wallets configured."}
+        return {"success": False, "error": "No Ethereum USDT wallets configured. Check environment variables."}
 
     try:
         if not eth_web3.is_connected():
@@ -156,6 +163,7 @@ def send_erc20_usdt_payout(to_address, amount):
         return {"success": False, "error": f"Ethereum network timeout error: {e}"}
     except Exception as e:
         return {"success": False, "error": f"Unexpected Ethereum payout error: {e}"}
+
 
 def process_crypto_payout(network, token, to_address, amount):
     """
