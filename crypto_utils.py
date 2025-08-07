@@ -1,16 +1,18 @@
 import os
 import json
 import threading
+import time
 from tronpy import Tron
 from tronpy.keys import PrivateKey
 from web3 import Web3, exceptions
 from web3.middleware import geth_poa_middleware # For POA networks if needed
 
 # --- Configuration Constants ---
+# These are the contract addresses for USDT on TRON (TRC20) and Ethereum (ERC20).
 TRON_USDT_CONTRACT_ADDRESS = 'TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf'
 ETHEREUM_USDT_CONTRACT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7'
 
-# A minimal ERC20 ABI with transfer and decimals.
+# A minimal ERC20 ABI with transfer and decimals for interacting with the contract.
 ERC20_ABI = [
     {
         "constant": False,
@@ -32,8 +34,8 @@ ERC20_ABI = [
 ]
 
 # --- Wallet and Client Setup ---
-# The script now fetches all sensitive wallet information directly from
-# your environment variables, which is a best practice for security.
+# This dictionary is populated from environment variables, which is a
+# best practice for security and deployment.
 WALLETS = {
     "TRON": {
         "USDT": [
@@ -62,7 +64,7 @@ tron_client = Tron()
 # Ethereum client - reads the INFURA_PROJECT_ID from environment variables
 infura_project_id = os.environ.get("INFURA_PROJECT_ID")
 if not infura_project_id:
-    # It's good practice to raise an error if a critical environment variable is missing.
+    # Raise an error if a critical environment variable is missing.
     raise ValueError("INFURA_PROJECT_ID not found in environment variables.")
 
 eth_web3 = Web3(Web3.HTTPProvider(f"https://mainnet.infura.io/v3/{infura_project_id}"))
@@ -90,7 +92,7 @@ def get_next_wallet(network, token):
 
 def send_tron_usdt_payout(to_address, amount):
     """
-    Send TRC20 USDT.
+    Send TRC20 USDT with exponential backoff for rate-limiting.
     """
     wallet = get_next_wallet("TRON", "USDT")
     if wallet is None:
@@ -101,25 +103,36 @@ def send_tron_usdt_payout(to_address, amount):
     except ValueError as e:
         return {"success": False, "error": f"Payout failed: Invalid TRON private key: {e}"}
 
-    try:
-        contract = tron_client.get_contract(TRON_USDT_CONTRACT_ADDRESS)
-        value = int(amount * 1_000_000)
-        
-        txn = (
-            contract.functions.transfer(to_address, value)
-            .with_owner(wallet["address"])
-            .build()
-        )
-        
-        signed_txn = txn.sign(priv_key)
-        result = signed_txn.broadcast().wait()
-        
-        if result and result.get("receipt", {}).get("result") == "SUCCESS":
-            return {"success": True, "txid": signed_txn.txid}
-        else:
-            return {"success": False, "error": f"Transaction failed on-chain: {result}"}
-    except Exception as e:
-        return {"success": False, "error": f"TRON payout error: {e}"}
+    retries = 3
+    delay = 1 # initial delay in seconds
+    for attempt in range(retries):
+        try:
+            contract = tron_client.get_contract(TRON_USDT_CONTRACT_ADDRESS)
+            value = int(amount * 1_000_000)
+            
+            txn = (
+                contract.functions.transfer(to_address, value)
+                .with_owner(wallet["address"])
+                .build()
+            )
+            
+            signed_txn = txn.sign(priv_key)
+            result = signed_txn.broadcast().wait()
+            
+            if result and result.get("receipt", {}).get("result") == "SUCCESS":
+                return {"success": True, "txid": signed_txn.txid}
+            else:
+                return {"success": False, "error": f"Transaction failed on-chain: {result}"}
+        except Exception as e:
+            # Check for rate-limiting error
+            if "Too Many Requests" in str(e) and attempt < retries - 1:
+                print(f"Rate limit hit. Retrying in {delay} seconds...")
+                time.sleep(delay)
+                delay *= 2  # Exponentially increase the delay
+            else:
+                return {"success": False, "error": f"TRON payout error: {e}"}
+    
+    return {"success": False, "error": "Maximum retries exceeded due to rate-limiting."}
 
 
 def send_erc20_usdt_payout(to_address, amount):
