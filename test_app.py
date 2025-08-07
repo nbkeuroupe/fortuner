@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from functools import wraps
 import os, time, random
 from dotenv import load_dotenv
-from crypto_utils import CryptoPayout  # ✅ MAINNET payout class
+from crypto_utils import process_crypto_payout
 
 load_dotenv()
 
