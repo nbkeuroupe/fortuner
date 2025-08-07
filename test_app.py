@@ -88,10 +88,10 @@ def logout():
 @login_required
 def terminal():
     return render_template('terminal.html', 
-                           protocols=PROTOCOLS, 
-                           wallets=WALLETS, 
-                           wallet_labels=WALLET_LABELS,
-                           max_amount=MAX_TRANSACTION_AMOUNT)
+                            protocols=PROTOCOLS, 
+                            wallets=WALLETS, 
+                            wallet_labels=WALLET_LABELS,
+                            max_amount=MAX_TRANSACTION_AMOUNT)
 
 @app.route('/process', methods=['POST'])
 @login_required
@@ -108,20 +108,27 @@ def process_card_transaction():
         merchant_wallet_id = data.get('merchant_wallet', '')
 
         if merchant_wallet_id not in MERCHANT_WALLETS:
-            return jsonify({'success': False, 'error': 'Invalid merchant wallet'})
+            flash('Invalid merchant wallet')
+            return redirect(url_for('terminal'))
 
         if not card_number or len(card_number) < 13:
-            return jsonify({'success': False, 'error': 'Invalid card number'})
+            flash('Invalid card number')
+            return redirect(url_for('terminal'))
         if not expiry_date or len(expiry_date) != 5:
-            return jsonify({'success': False, 'error': 'Invalid expiry date'})
+            flash('Invalid expiry date')
+            return redirect(url_for('terminal'))
         if not cvv or len(cvv) < 3:
-            return jsonify({'success': False, 'error': 'Invalid CVV'})
+            flash('Invalid CVV')
+            return redirect(url_for('terminal'))
         if protocol == '101.1' and len(auth_code) != 4:
-            return jsonify({'success': False, 'error': 'Protocol 101.1 requires 4-digit code'})
+            flash('Protocol 101.1 requires 4-digit code')
+            return redirect(url_for('terminal'))
         if protocol == '201.3' and len(auth_code) != 6:
-            return jsonify({'success': False, 'error': 'Protocol 201.3 requires 6-digit code'})
+            flash('Protocol 201.3 requires 6-digit code')
+            return redirect(url_for('terminal'))
         if amount <= 0 or amount > MAX_TRANSACTION_AMOUNT:
-            return jsonify({'success': False, 'error': f'Amount must be between $0.01 and ${MAX_TRANSACTION_AMOUNT:,.2f}'})
+            flash(f'Amount must be between $0.01 and ${MAX_TRANSACTION_AMOUNT:,.2f}')
+            return redirect(url_for('terminal'))
 
         transaction_id = f'TXN{int(time.time())}{abs(hash(card_number))}'[-8:]
         infrastructure_fee = amount * (CONVERSION_FEE_PERCENT / 100)
@@ -136,9 +143,12 @@ def process_card_transaction():
             amount=merchant_amount
         )
 
+        # Handle failure cases by flashing an error and redirecting back to the terminal
         if not result['success']:
-            return jsonify({'success': False, 'error': f"Payout failed: {result.get('error', 'Unknown')}"})
+            flash(f"Payout failed: {result.get('error', 'Unknown')}")
+            return redirect(url_for('terminal'))
 
+        # On success, store the result in the session
         session['last_transaction'] = {
             'status': 'success',
             'transaction_id': transaction_id,
@@ -151,17 +161,19 @@ def process_card_transaction():
             'net_amount': merchant_amount,
             'network': wallet['network'],
             'payout_address': wallet['address'],
-            'crypto_hash': result['tx_hash'],
-            'explorer_url': result.get('explorer_url'),
+            # Corrected from 'tx_hash' to 'txid'
+            'crypto_hash': result['txid'],
             'testnet': not USE_MAINNET,
             'processing_time': f'{random.randint(2, 8)} seconds',
             'timestamp': time.time()
         }
 
-        return jsonify({'success': True, 'redirect': url_for('transaction_result', transaction_id=transaction_id)})
+        # Perform the server-side redirect to the transaction result page
+        return redirect(url_for('transaction_result', transaction_id=transaction_id))
 
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        flash(f'An unexpected error occurred: {str(e)}')
+        return redirect(url_for('terminal'))
 
 @app.route('/transaction-result/<transaction_id>')
 @login_required
