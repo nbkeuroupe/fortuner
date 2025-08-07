@@ -117,11 +117,17 @@ def process_crypto_payout(to_address, amount, network, token_type):
         else:
             raise Exception(f"Unsupported payout type: {network} - {token_type}")
 
-        return tx_hash
+        return {
+            "success": True,
+            "tx_hash": tx_hash
+        }
 
     except Exception as e:
         log_crypto_payout_failure(e, to_address, amount, network)
-        return f"error: {str(e)}"
+        return {
+            "success": False,
+            "error": str(e)
+        }
 
 # Optional Singleton Processor
 class CryptoPaymentProcessor:
