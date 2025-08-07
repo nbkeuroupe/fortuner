@@ -1,11 +1,11 @@
 {
   "usdt_trc20": {
-    "address": "TJpB5nxxxxxxxxxxxxxxxxxxxxxxxxxxxx", 
+    "address": "TKMpfYsTRWJ8W4QUUiUc6XT8cJ8UWkzSLT", 
     "network": "TRON",
     "token": "USDT"
   },
   "usdt_erc20": {
-    "address": "0x5Acxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", 
+    "address": "0x73F888dcE062d2acD4A7688386F0f92f43055491", 
     "network": "ETH",
     "token": "USDT"
   }
