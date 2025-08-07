@@ -119,9 +119,12 @@ def process_crypto_payout(network, token, to_address, amount):
         elif network == "ETHEREUM" and token == "USDT":
             result = send_erc20_usdt_payout(to_address, amount)
         else:
-            return {"success": False, "error": f"Payout failed: Unsupported network/token combination: {network} - {token}"}
+            return {
+                "success": False,
+                "error": f"Payout failed: Unsupported network/token combination: {network} - {token}"
+            }
 
-        # Here, result is expected to be a dict like {"success": True, "tx_hash": "..."}
+        # The send_* functions should return a dict like {"success": True, "tx_hash": "..."}
         return result
 
     except Exception as e:
