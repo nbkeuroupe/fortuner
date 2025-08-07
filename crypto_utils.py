@@ -32,23 +32,37 @@ ERC20_ABI = [
 ]
 
 # --- Wallet and Client Setup ---
-wallets_file = os.path.join(os.path.dirname(__file__), 'wallets.json')
-WALLETS = {}
-if os.path.exists(wallets_file):
-    try:
-        with open(wallets_file, 'r') as f:
-            WALLETS = json.load(f)
-    except (IOError, json.JSONDecodeError) as e:
-        print(f"[ERROR] Failed to load wallets.json: {e}")
-        WALLETS = {}
+# Modified to load from environment variables instead of wallets.json
+WALLETS = {
+    "TRON": {
+        "USDT": [
+            {
+                "address": os.environ.get("TRON_MERCHANT_WALLET"),
+                "private_key": os.environ.get("TRON_PRIVATE_KEY")
+            }
+        ]
+    },
+    "ETHEREUM": {
+        "USDT": [
+            {
+                "address": os.environ.get("ETH_MERCHANT_WALLET"),
+                "private_key": os.environ.get("ETH_PRIVATE_KEY")
+            }
+        ]
+    }
+}
 
 rotation_counters = {}
 rotation_lock = threading.Lock()
 
 tron_client = Tron()
 
-# IMPORTANT: Replace YOUR_INFURA_PROJECT_ID with your actual key.
-eth_web3 = Web3(Web3.HTTPProvider("https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID"))
+# IMPORTANT: Reads your Infura Project ID from environment variables
+infura_project_id = os.environ.get("INFURA_PROJECT_ID")
+if not infura_project_id:
+    raise ValueError("INFURA_PROJECT_ID not found in environment variables.")
+
+eth_web3 = Web3(Web3.HTTPProvider(f"https://mainnet.infura.io/v3/{infura_project_id}"))
 
 # --- Helper Functions ---
 def get_next_wallet(network, token):
@@ -75,6 +89,7 @@ def send_tron_usdt_payout(to_address, amount):
     if wallet is None:
         return {"success": False, "error": "No TRON USDT wallets configured."}
 
+    # The `fromhex` function here will now use your correct private key
     try:
         priv_key = PrivateKey(bytes.fromhex(wallet["private_key"]))
     except ValueError as e:
@@ -98,10 +113,7 @@ def send_tron_usdt_payout(to_address, amount):
         else:
             return {"success": False, "error": f"Transaction failed on-chain: {result}"}
     except Exception as e:
-        # We're catching the general 'Exception' here because the
-        # specific `TronError` class is not importable in your environment.
         return {"success": False, "error": f"TRON payout error: {e}"}
-
 
 def send_erc20_usdt_payout(to_address, amount):
     """
@@ -144,7 +156,6 @@ def send_erc20_usdt_payout(to_address, amount):
         return {"success": False, "error": f"Ethereum network timeout error: {e}"}
     except Exception as e:
         return {"success": False, "error": f"Unexpected Ethereum payout error: {e}"}
-
 
 def process_crypto_payout(network, token, to_address, amount):
     """
