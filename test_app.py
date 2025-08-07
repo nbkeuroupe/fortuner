@@ -143,14 +143,8 @@ def process_card_transaction():
             amount=merchant_amount
         )
 
-        # Handle failure cases by flashing an error and redirecting back to the terminal
-        if not result['success']:
-            flash(f"Payout failed: {result.get('error', 'Unknown')}")
-            return redirect(url_for('terminal'))
-
-        # On success, store the result in the session
-        session['last_transaction'] = {
-            'status': 'success',
+        # Create a dictionary to hold the transaction details regardless of success or failure
+        transaction_details = {
             'transaction_id': transaction_id,
             'card_last4': card_number[-4:],
             'amount': amount,
@@ -161,12 +155,21 @@ def process_card_transaction():
             'net_amount': merchant_amount,
             'network': wallet['network'],
             'payout_address': wallet['address'],
-            # Corrected from 'tx_hash' to 'txid'
-            'crypto_hash': result['txid'],
             'testnet': not USE_MAINNET,
             'processing_time': f'{random.randint(2, 8)} seconds',
             'timestamp': time.time()
         }
+
+        # Check the result and add status and relevant data
+        if result['success']:
+            transaction_details['status'] = 'success'
+            transaction_details['crypto_hash'] = result['txid']
+        else:
+            transaction_details['status'] = 'failure'
+            transaction_details['error_message'] = result.get('error', 'Unknown error during payout.')
+        
+        # Store the complete transaction details in the session
+        session['last_transaction'] = transaction_details
 
         # Perform the server-side redirect to the transaction result page
         return redirect(url_for('transaction_result', transaction_id=transaction_id))
