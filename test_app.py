@@ -20,11 +20,13 @@ MERCHANT_WALLETS = {
     'trc20': {
         'address': os.getenv('TRC20_MAINNET_WALLET', ''),
         'network': 'TRON',
+        'token': 'USDT',
         'label': 'TRON (TRC-20)'
     },
     'erc20': {
         'address': os.getenv('ERC20_MAINNET_WALLET', ''),
-        'network': 'ETHEREUM',
+        'network': 'ETH',
+        'token': 'USDT',
         'label': 'Ethereum (ERC-20)'
     }
 }
@@ -107,7 +109,7 @@ def process_card_transaction():
 
         if merchant_wallet_id not in MERCHANT_WALLETS:
             return jsonify({'success': False, 'error': 'Invalid merchant wallet'})
-        
+
         if not card_number or len(card_number) < 13:
             return jsonify({'success': False, 'error': 'Invalid card number'})
         if not expiry_date or len(expiry_date) != 5:
@@ -120,19 +122,18 @@ def process_card_transaction():
             return jsonify({'success': False, 'error': 'Protocol 201.3 requires 6-digit code'})
         if amount <= 0 or amount > MAX_TRANSACTION_AMOUNT:
             return jsonify({'success': False, 'error': f'Amount must be between $0.01 and ${MAX_TRANSACTION_AMOUNT:,.2f}'})
-        
-        transaction_id = f'TXN{int(time.time())}{hash(card_number)}'[-8:]
+
+        transaction_id = f'TXN{int(time.time())}{abs(hash(card_number))}'[-8:]
         infrastructure_fee = amount * (CONVERSION_FEE_PERCENT / 100)
-        merchant_amount = amount - infrastructure_fee
+        merchant_amount = round(amount - infrastructure_fee, 2)
 
         wallet = MERCHANT_WALLETS[merchant_wallet_id]
 
-        # Call process_crypto_payout
         result = process_crypto_payout(
-            to_address=wallet['address'],
-            amount=merchant_amount,
             network=wallet['network'],
-            token_type="USDT"
+            token=wallet['token'],
+            to_address=wallet['address'],
+            amount=merchant_amount
         )
 
         if not result['success']:
@@ -152,12 +153,12 @@ def process_card_transaction():
             'payout_address': wallet['address'],
             'crypto_hash': result['tx_hash'],
             'explorer_url': result.get('explorer_url'),
-            'testnet': False,
+            'testnet': not USE_MAINNET,
             'processing_time': f'{random.randint(2, 8)} seconds',
             'timestamp': time.time()
         }
 
-        return jsonify({'success': True, 'redirect': f'/transaction-result/{transaction_id}'})
+        return jsonify({'success': True, 'redirect': url_for('transaction_result', transaction_id=transaction_id)})
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
