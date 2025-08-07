@@ -33,6 +33,20 @@ ERC20_ABI = [
     }
 ]
 
+# A minimal TRC20 ABI for the `transfer` function
+TRC20_ABI = [
+    {
+        "inputs": [
+            {"name": "to", "type": "address"},
+            {"name": "amount", "type": "uint256"}
+        ],
+        "name": "transfer",
+        "outputs": [{"name": "", "type": "bool"}],
+        "type": "function"
+    }
+]
+
+
 # --- Wallet and Client Setup ---
 # This dictionary is populated from environment variables, which is a
 # best practice for security and deployment.
@@ -107,7 +121,8 @@ def send_tron_usdt_payout(to_address, amount):
     delay = 1 # initial delay in seconds
     for attempt in range(retries):
         try:
-            contract = tron_client.get_contract(TRON_USDT_CONTRACT_ADDRESS)
+            # Passes the TRC20_ABI to the get_contract function
+            contract = tron_client.get_contract(TRON_USDT_CONTRACT_ADDRESS, abi=TRC20_ABI)
             value = int(amount * 1_000_000)
             
             txn = (
