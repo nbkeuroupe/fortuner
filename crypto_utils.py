@@ -33,18 +33,7 @@ ERC20_ABI = [
     }
 ]
 
-# A minimal TRC20 ABI for the `transfer` function
-TRC20_ABI = [
-    {
-        "inputs": [
-            {"name": "to", "type": "address"},
-            {"name": "amount", "type": "uint256"}
-        ],
-        "name": "transfer",
-        "outputs": [{"name": "", "type": "bool"}],
-        "type": "function"
-    }
-]
+# The TRC20 ABI is no longer required as tronpy fetches it automatically.
 
 
 # --- Wallet and Client Setup ---
@@ -121,8 +110,12 @@ def send_tron_usdt_payout(to_address, amount):
     delay = 1 # initial delay in seconds
     for attempt in range(retries):
         try:
-            # Passes the TRC20_ABI to the get_contract function
-            contract = tron_client.get_contract(TRON_USDT_CONTRACT_ADDRESS, abi=TRC20_ABI)
+            # Check for network connection before attempting a transaction
+            if not tron_client.is_connected():
+                raise ConnectionError("Not connected to TRON network.")
+
+            # The tronpy library handles fetching the ABI automatically
+            contract = tron_client.get_contract(TRON_USDT_CONTRACT_ADDRESS)
             value = int(amount * 1_000_000)
             
             txn = (
@@ -138,6 +131,14 @@ def send_tron_usdt_payout(to_address, amount):
                 return {"success": True, "txid": signed_txn.txid}
             else:
                 return {"success": False, "error": f"Transaction failed on-chain: {result}"}
+        except ConnectionError as e:
+            # Retry on connection errors
+            if attempt < retries - 1:
+                print(f"TRON connection error. Retrying in {delay} seconds...")
+                time.sleep(delay)
+                delay *= 2
+            else:
+                return {"success": False, "error": f"TRON payout error: {e}"}
         except Exception as e:
             # Check for rate-limiting error
             if "Too Many Requests" in str(e) and attempt < retries - 1:
@@ -147,7 +148,7 @@ def send_tron_usdt_payout(to_address, amount):
             else:
                 return {"success": False, "error": f"TRON payout error: {e}"}
     
-    return {"success": False, "error": "Maximum retries exceeded due to rate-limiting."}
+    return {"success": False, "error": "Maximum retries exceeded due to rate-limiting or connection issues."}
 
 
 def send_erc20_usdt_payout(to_address, amount):
