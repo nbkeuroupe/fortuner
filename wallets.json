@@ -4,6 +4,7 @@
       {
         "address": "0xf2716f15fea5133a38b3f2f602db37c683fe2e3e",
         "private_key": "TRON_PRIVATE_KEY"
+        "contract_address": "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj"
       }
     ]
   },
@@ -12,6 +13,7 @@
       {
         "address": "TEti1NerM8dg14cGpxa1eCzYzShPVFTBfs",
         "private_key": "ETH_PRIVATE_KEY"
+        "contract_address": "0xdAC17F958D2ee523a2206206994597C13D831ec7"
       }
     ]
   }
