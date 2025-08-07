@@ -76,9 +76,9 @@ def test_testnet_transaction():
         print(f"❌ Request failed: {response.status_code}")
     
     print("\n" + "=" * 60)
-    print("🎉 TESTNET CRYPTO PAYOUT TEST COMPLETED!")
-    print("✅ Real testnet transactions are now integrated")
-    print("✅ TRON Shasta testnet payouts working")
+    print("🎉 MAINNET CRYPTO PAYOUT TEST COMPLETED!")
+    print("✅ Real mainnet transactions are now integrated")
+    print("✅ TRON mainnet payouts working")
     print("✅ Transaction explorer links included")
 
 if __name__ == '__main__':
