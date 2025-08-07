@@ -1,4 +1,4 @@
-   from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
 from functools import wraps
 import os, time, random
 from dotenv import load_dotenv
