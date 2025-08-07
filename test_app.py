@@ -125,13 +125,14 @@ def process_card_transaction():
         infrastructure_fee = amount * (CONVERSION_FEE_PERCENT / 100)
         merchant_amount = amount - infrastructure_fee
 
-        # MAINNET payout
-        crypto_payout = CryptoPayout()
         wallet = MERCHANT_WALLETS[merchant_wallet_id]
-        result = crypto_payout.send_payout(
-            network=wallet['network'],
+
+        # Call process_crypto_payout
+        result = process_crypto_payout(
             to_address=wallet['address'],
-            amount_usdt=merchant_amount
+            amount=merchant_amount,
+            network=wallet['network'],
+            token_type="USDT"
         )
 
         if not result['success']:
