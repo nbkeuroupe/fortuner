@@ -3,7 +3,7 @@ import os
 import threading
 from tronpy import Tron
 from tronpy.keys import PrivateKey
-from tronpy.exceptions import TronError
+from tronpy import TronError
 from web3 import Web3, exceptions
 from web3.middleware import geth_poa_middleware # For POA networks if needed
 
