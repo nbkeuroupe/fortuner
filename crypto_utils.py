@@ -117,7 +117,7 @@ def process_crypto_payout(network, token, to_address, amount):
     try:
         if network == "TRON" and token == "USDT":
             result = send_tron_usdt_payout(to_address, amount)
-        elif network == "ETHEREUM" and token == "USDT":
+        elif network == "ETH" and token == "USDT":
             result = send_erc20_usdt_payout(to_address, amount)
         else:
             return {
