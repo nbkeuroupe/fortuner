@@ -108,6 +108,10 @@ def log_crypto_payout_failure(error, to_address, amount, network):
 
 def process_crypto_payout(to_address, amount, network, token_type):
     try:
+        # Normalize
+        network = network.lower()
+        token_type = token_type.lower()
+
         wallet = rotate_wallet(network, token_type)
         private_key = wallet.get("private_key")
         contract_address = wallet.get("contract_address")
@@ -122,7 +126,7 @@ def process_crypto_payout(to_address, amount, network, token_type):
         elif network == "tron" and token_type == "usdt":
             tx_hash = send_trc20_token(to_address, amount, private_key, contract_address)
         else:
-            raise Exception(f"Unsupported payout type: {network.upper()} - {token_type.upper()}")
+            raise Exception(f"Unsupported payout type: {network} - {token_type}")
 
         return {
             "success": True,
