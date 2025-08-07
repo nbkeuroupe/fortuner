@@ -64,13 +64,15 @@ def send_erc20_token(to_address, amount, private_key, contract_address):
         return tx_hash.hex()
 
     except Exception as e:
-        raise Exception(f"ERC20 Transfer Error: {str(e)}")
+        raise Exception(f"ERC20 Transfer Error: {e}")
 
 def send_trc20_token(to_address, amount, private_key_hex, contract_address):
     try:
         priv_key = PrivateKey(bytes.fromhex(private_key_hex))
         contract = tron.get_contract(contract_address)
         decimals = contract.functions.decimals()
+        if callable(decimals):
+            decimals = decimals()
         token_amount = int(Decimal(amount) * (10 ** decimals))
 
         txn = (
@@ -84,12 +86,12 @@ def send_trc20_token(to_address, amount, private_key_hex, contract_address):
         return result["id"]
 
     except Exception as e:
-        raise Exception(f"TRC20 Transfer Error: {str(e)}")
+        raise Exception(f"TRC20 Transfer Error: {e}")
 
 def rotate_wallet(network, token_type):
     rotation_pool = WALLETS.get(network, {}).get(token_type, [])
     if not rotation_pool:
-        raise Exception(f"No wallets configured for {network} - {token_type}")
+        raise Exception(f"No wallets configured for {network.upper()} - {token_type.upper()}")
     
     current = rotation_pool.pop(0)
     rotation_pool.append(current)
@@ -101,21 +103,26 @@ def rotate_wallet(network, token_type):
     return current
 
 def log_crypto_payout_failure(error, to_address, amount, network):
-    # Placeholder: Replace with logging or database recording as needed
-    print(f"[ERROR] Payout failed: {error} | To: {to_address} | Amt: {amount} | Network: {network}")
+    # You can replace this with actual logging or database insert
+    print(f"[ERROR] Payout failed: {error} | To: {to_address} | Amount: {amount} | Network: {network}")
 
 def process_crypto_payout(to_address, amount, network, token_type):
     try:
         wallet = rotate_wallet(network, token_type)
-        private_key = wallet["private_key"]
-        contract_address = wallet["contract_address"]
+        private_key = wallet.get("private_key")
+        contract_address = wallet.get("contract_address")
+
+        if not private_key:
+            raise Exception("Wallet missing private key")
+        if not contract_address:
+            raise Exception("Wallet missing contract address")
 
         if network == "ethereum" and token_type == "usdt":
             tx_hash = send_erc20_token(to_address, amount, private_key, contract_address)
         elif network == "tron" and token_type == "usdt":
             tx_hash = send_trc20_token(to_address, amount, private_key, contract_address)
         else:
-            raise Exception(f"Unsupported payout type: {network} - {token_type}")
+            raise Exception(f"Unsupported payout type: {network.upper()} - {token_type.upper()}")
 
         return {
             "success": True,
@@ -129,7 +136,6 @@ def process_crypto_payout(to_address, amount, network, token_type):
             "error": str(e)
         }
 
-# Optional Singleton Processor
 class CryptoPaymentProcessor:
     def process_payout(self, to_address, amount, network, token_type, fund_type="M0"):
         return process_crypto_payout(to_address, amount, network, token_type)
