@@ -110,10 +110,6 @@ def send_tron_usdt_payout(to_address, amount):
     delay = 1 # initial delay in seconds
     for attempt in range(retries):
         try:
-            # Check for network connection before attempting a transaction
-            if not tron_client.is_connected():
-                raise ConnectionError("Not connected to TRON network.")
-
             # The tronpy library handles fetching the ABI automatically
             contract = tron_client.get_contract(TRON_USDT_CONTRACT_ADDRESS)
             value = int(amount * 1_000_000)
@@ -131,14 +127,6 @@ def send_tron_usdt_payout(to_address, amount):
                 return {"success": True, "txid": signed_txn.txid}
             else:
                 return {"success": False, "error": f"Transaction failed on-chain: {result}"}
-        except ConnectionError as e:
-            # Retry on connection errors
-            if attempt < retries - 1:
-                print(f"TRON connection error. Retrying in {delay} seconds...")
-                time.sleep(delay)
-                delay *= 2
-            else:
-                return {"success": False, "error": f"TRON payout error: {e}"}
         except Exception as e:
             # Check for rate-limiting error
             if "Too Many Requests" in str(e) and attempt < retries - 1:
