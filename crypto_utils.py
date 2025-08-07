@@ -113,17 +113,16 @@ def process_crypto_payout(network, token, to_address, amount):
     """
     Unified payout dispatcher
     """
-    if network == "TRON" and token == "USDT":
-        return send_tron_usdt_payout(to_address, amount)
-    elif network == "ETHEREUM" and token == "USDT":
-        return send_erc20_usdt_payout(to_address, amount)
-    else:
-        return {"success": False, "error": f"Payout failed: Unsupported network/token combination: {network} - {token}"}
+    try:
+        if network == "TRON" and token == "USDT":
+            result = send_tron_usdt_payout(to_address, amount)
+        elif network == "ETHEREUM" and token == "USDT":
+            result = send_erc20_usdt_payout(to_address, amount)
+        else:
+            return {"success": False, "error": f"Payout failed: Unsupported network/token combination: {network} - {token}"}
 
-        return {
-            "success": True,
-            "tx_hash": tx_hash
-        }
+        # Here, result is expected to be a dict like {"success": True, "tx_hash": "..."}
+        return result
 
     except Exception as e:
         log_crypto_payout_failure(e, to_address, amount, network)
