@@ -123,7 +123,7 @@ def process_crypto_payout(to_address, amount, network, token_type):
         log_crypto_payout_failure(e, to_address, amount, network)
         return f"error: {str(e)}"
 
-# Optional Singleton Processor (only needed if used elsewhere in system)
+# Optional Singleton Processor
 class CryptoPaymentProcessor:
     def process_payout(self, to_address, amount, network, token_type, fund_type="M0"):
         return process_crypto_payout(to_address, amount, network, token_type)
@@ -138,7 +138,3 @@ def get_crypto_processor():
             if _crypto_processor is None:
                 _crypto_processor = CryptoPaymentProcessor()
     return _crypto_processor
-
-def process_crypto_payout(to_address, amount, network, token, fund_type="M0"):
-    """Legacy function for backward compatibility"""
-    return get_crypto_processor().process_payout(to_address, amount, network, token, fund_type)
