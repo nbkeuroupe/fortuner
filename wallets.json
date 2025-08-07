@@ -1,6 +1,6 @@
 {
   "ETHEREUM": {
-    "USDT": [
+    "TRON": [
       {
         "address": "0xf2716f15fea5133a38b3f2f602db37c683fe2e3e",
         "private_key_env": "ETH_PRIVATE_KEY"
