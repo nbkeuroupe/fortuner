@@ -9,8 +9,8 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "production-secret")
 
-USERNAME = os.getenv("APP_USERNAME", "admin")
-PASSWORD = os.getenv("APP_PASSWORD", "securepass123")
+USERNAME = os.getenv("APP_USERNAME", "blackrock")
+PASSWORD = os.getenv("APP_PASSWORD", "terminal123")
 USE_MAINNET = os.getenv("USE_MAINNET", "true").lower() == "true"
 
 MAX_TRANSACTION_AMOUNT = 10000000.00
